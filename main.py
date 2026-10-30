@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Path
 from pydantic import BaseModel, Field
 
 app = FastAPI()
@@ -41,6 +41,9 @@ tasks_db: list[dict] = []
         Входные данные проходят валидацию: title (3-100 символов), description (опционально), priority (1-5).
         Поля id и created_at генерируются автоматически на сервере.
         """,
+    responses={
+        201: {"description": "Задача успешно создана"},
+    },
 )
 async def create_task(task: TaskCreate):
     """Создание новой задачи в системе управления задачами."""
@@ -74,8 +77,21 @@ async def create_task(task: TaskCreate):
         При успешном поиске возвращает объект задачи с полями id, title, description, priority, created_at. 
         Если задача с указанным task_id не найдена, возвращается ошибка 404 Not Found.
     """,
+    responses={
+        200: {"description": "Успешный запрос"},
+        404: {
+            "description": "Задача не найдена",
+            "content": {
+                "application/json": {
+                    "example": {"detail": {"detail": "Task not found", "task_id": 1}}
+                }
+            },
+        },
+    },
 )
-async def get_task(task_id: int):
+async def get_task(
+    task_id: int = Path(..., description="Уникальный идентификатор задачи")
+):
     """Получить задачу по её идентификатору."""
 
     # Ищем задачу в хранилище
@@ -85,5 +101,5 @@ async def get_task(task_id: int):
 
     # Если задача не найдена — возвращаем 404
     raise HTTPException(
-        status_code=404, detail={"message": "Task not found", "task_id": task_id}
+        status_code=404, detail={"detail": "Task not found", "task_id": task_id}
     )
